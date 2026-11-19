@@ -1,0 +1,1016 @@
+<title>Telegram Brain Radar</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* Telegram Brain Radar - Design Tokens & Styles */
+:root {
+  --bg: #0b0f19;
+  --surface: #131b2e;
+  --surface-raised: #1c2742;
+  --surface-hover: #233152;
+  --border: #233152;
+  --border-focus: #4f46e5;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.15);
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.15);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.15);
+  --danger: #ef4444;
+  --danger-soft: rgba(239, 68, 68, 0.15);
+  --github-color: #a855f7;
+  --notion-color: #38bdf8;
+  --thasup-color: #ec4899;
+  --wiki-color: #14b8a6;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-raised: #f1f5f9;
+    --surface-hover: #e2e8f0;
+    --border: #e2e8f0;
+    --border-focus: #4f46e5;
+    --text: #0f172a;
+    --text-muted: #475569;
+    --text-dim: #94a3b8;
+    --accent: #4f46e5;
+    --accent-soft: rgba(79, 70, 229, 0.1);
+    --success: #059669;
+    --success-soft: rgba(5, 150, 105, 0.1);
+    --warning: #d97706;
+    --warning-soft: rgba(217, 119, 6, 0.1);
+    --danger: #dc2626;
+    --danger-soft: rgba(220, 38, 38, 0.1);
+    --github-color: #9333ea;
+    --notion-color: #0284c7;
+    --thasup-color: #db2777;
+    --wiki-color: #0d9488;
+    color-scheme: light;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0f19;
+  --surface: #131b2e;
+  --surface-raised: #1c2742;
+  --surface-hover: #233152;
+  --border: #233152;
+  --border-focus: #6366f1;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.15);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 60px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+/* Top Hero Bar */
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-titles h1 {
+  font-size: 28px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hero-titles p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+  background: var(--accent);
+}
+
+/* KPI Tiles */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kpi-card:hover, .kpi-card.active {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kpi-val {
+  font-size: 26px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Security Alert Box */
+.security-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sec-title {
+  color: #f87171;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sec-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Navigation Tabs */
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: thin;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+
+.tab-btn.active {
+  color: #fff;
+  background: var(--accent);
+}
+
+/* Filter & Search Bar */
+.search-bar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.search-input-wrap {
+  flex: 1;
+  min-width: 260px;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px 10px 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--border-focus);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.category-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.pill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pill:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.pill.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Message Card Grid */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+}
+
+.msg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  min-width: 0;
+}
+
+.msg-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-ai { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+.badge-github { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+.badge-trading { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.3); }
+.badge-finanza { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-carriera { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-fitness { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+.badge-ricette { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.badge-thasup { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+.badge-cheatsheet { background: rgba(14, 165, 233, 0.15); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
+.badge-salute { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+.badge-media { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+.card-date {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.card-text {
+  font-size: 13px;
+  color: var(--text);
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-height: 140px;
+  overflow-y: auto;
+  font-family: inherit;
+}
+
+.card-text a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.card-attachment {
+  background: var(--surface-raised);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card-dest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.dest-label {
+  font-weight: 600;
+  color: var(--notion-color);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.conf-pill {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-cmd {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #38bdf8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* Tools / Batch Hub views */
+.tool-view {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.tool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.code-box {
+  background: #05070d;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #38bdf8;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 380px;
+  line-height: 1.6;
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--accent);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 100;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+[hidden] {
+  display: none !important;
+}
+</style>
+
+<div class="hero">
+  <div class="hero-titles">
+    <h1>🧭 Telegram Brain Radar</h1>
+    <p>244 messaggi salvati classificati per Topic reale con decision model locale <code>tev1:0.8b</code></p>
+  </div>
+  <div class="hero-actions">
+    <label class="btn" style="cursor:pointer">📂 Carica results.jsonl<input type="file" accept=".jsonl,.json" style="display:none" onchange="handleFileUpload(event)"></label>
+    <button class="btn" onclick="exportJSON()">📥 Scarica JSON</button>
+    <button class="btn btn-primary" onclick="switchTab('tab-all')">Vedi Tutti i Messaggi</button>
+  </div>
+</div>
+
+<div class="security-banner" id="sec-banner">
+  <div>
+    <div class="sec-title">🛡️ Attenzione Sicurezza: 9 Credenziali / Password Rilevate</div>
+    <div class="sec-desc">Sono state trovate credenziali in chiaro nei messaggi salvati (MT5, Teleparty, Kaggle, XMind, PIN locker). Migrale su un password manager protetto!</div>
+  </div>
+  <button class="btn btn-sm" onclick="switchTab('tab-security')">Ispeziona Credenziali</button>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card" onclick="filterByCat('all')">
+    <div class="kpi-label">Totale Elementi</div>
+    <div class="kpi-val" id="kpi-total">244</div>
+    <div class="kpi-sub">Messaggi utili analizzati</div>
+  </div>
+  <div class="kpi-card" onclick="switchTab('tab-github')">
+    <div class="kpi-label" style="color:var(--github-color)">GitHub Starred</div>
+    <div class="kpi-val" id="kpi-github">4</div>
+    <div class="kpi-sub">Repo da mettere nei preferiti</div>
+  </div>
+  <div class="kpi-card" onclick="filterByCat('ai_tech_generico')">
+    <div class="kpi-label" style="color:var(--accent)">AI & Tech KB</div>
+    <div class="kpi-val" id="kpi-ai">111</div>
+    <div class="kpi-sub">Prompt, visualizer, tool dev</div>
+  </div>
+  <div class="kpi-card" onclick="switchTab('tab-ytdlp')">
+    <div class="kpi-label" style="color:var(--thasup-color)">Media & Audio</div>
+    <div class="kpi-val" id="kpi-media">77</div>
+    <div class="kpi-sub">49 Reels + 28 brani Thasup</div>
+  </div>
+  <div class="kpi-card" onclick="switchTab('tab-trading')">
+    <div class="kpi-label" style="color:var(--wiki-color)">Trading Wiki</div>
+    <div class="kpi-val" id="kpi-trading">7</div>
+    <div class="kpi-sub">MT5, indicatori, bot wiki</div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="btn-tab-all" onclick="switchTab('tab-all')">📋 Tutti i Messaggi (<span id="tab-count-all">244</span>)</button>
+  <button class="tab-btn" id="btn-tab-github" onclick="switchTab('tab-github')">⭐ GitHub Starred (<span id="tab-count-gh">4</span>)</button>
+  <button class="tab-btn" id="btn-tab-ytdlp" onclick="switchTab('tab-ytdlp')">🎬 yt-dlp Batch Download (77)</button>
+  <button class="tab-btn" id="btn-tab-notion" onclick="switchTab('tab-notion')">📘 Notion Second Brain Hub</button>
+  <button class="tab-btn" id="btn-tab-trading" onclick="switchTab('tab-trading')">📈 Trading Wiki Hub (7)</button>
+  <button class="tab-btn" id="btn-tab-security" onclick="switchTab('tab-security')">🔐 Credenziali Rilevate (9)</button>
+</div>
+
+<!-- VIEW 1: ALL MESSAGES -->
+<div id="view-tab-all">
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" class="search-input" placeholder="Cerca nel testo, domini, URL o destinazione..." oninput="filterCards()">
+    </div>
+  </div>
+
+  <div class="category-pills" id="categoryPills">
+    <!-- Generated dynamically -->
+  </div>
+
+  <div class="cards-grid" id="cardsGrid">
+    <!-- Generated dynamically -->
+  </div>
+</div>
+
+<!-- VIEW 2: GITHUB STARRED -->
+<div id="view-tab-github" class="tool-view" hidden>
+  <div class="tool-header">
+    <div>
+      <h2>⭐ Repository GitHub da Starrare</h2>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Esegui questi comandi con la CLI <code>gh</code> per starrare automaticamente tutte le repository trovate.</p>
+    </div>
+    <button class="btn btn-primary" onclick="copyToClipboard('github-script')">Copia Script Shell</button>
+  </div>
+  <div class="code-box" id="github-script"></div>
+</div>
+
+<!-- VIEW 3: YT-DLP BATCH -->
+<div id="view-tab-ytdlp" class="tool-view" hidden>
+  <div class="tool-header">
+    <div>
+      <h2>🎬 Script Download Offline con yt-dlp</h2>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Scarica in locale tutti i reel Instagram, TikTok e i brani audio di Thasup prima che vengano rimossi.</p>
+    </div>
+    <button class="btn btn-primary" onclick="copyToClipboard('ytdlp-script')">Copia Script yt-dlp</button>
+  </div>
+  <div class="code-box" id="ytdlp-script"></div>
+</div>
+
+<!-- VIEW 4: NOTION SECOND BRAIN -->
+<div id="view-tab-notion" class="tool-view" hidden>
+  <div class="tool-header">
+    <div>
+      <h2>📘 Mappatura Notion Second Brain</h2>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Distribuzione degli elementi divisi esattamente per il database di destinazione in Notion.</p>
+    </div>
+    <button class="btn btn-primary" onclick="copyToClipboard('notion-summary')">Copia Riepilogo Notion</button>
+  </div>
+  <div class="code-box" id="notion-summary"></div>
+</div>
+
+<!-- VIEW 5: TRADING AGENT WIKI -->
+<div id="view-tab-trading" class="tool-view" hidden>
+  <div class="tool-header">
+    <div>
+      <h2>📈 Trading Wiki Hub (trading-agent-wiki)</h2>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Appunti, setup e riferimenti da salvare nella wiki GitHub del repository trading-agent.</p>
+    </div>
+    <button class="btn btn-primary" onclick="copyToClipboard('trading-wiki-box')">Copia Note Wiki</button>
+  </div>
+  <div class="code-box" id="trading-wiki-box"></div>
+</div>
+
+<!-- VIEW 6: SECURITY PASSWORDS -->
+<div id="view-tab-security" class="tool-view" hidden>
+  <div class="tool-header">
+    <div>
+      <h2 style="color:#f87171">🔐 Credenziali & Password Rilevate</h2>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Messaggi con credenziali in chiaro salvati su Telegram: copia su Bitwarden e cancella da Telegram.</p>
+    </div>
+    <button class="btn" onclick="toggleMaskPasswords()">👁️ Mostra/Nascondi Password</button>
+  </div>
+  <div class="code-box" id="security-box"></div>
+</div>
+
+<div class="toast" id="toast" hidden>Copiato negli appunti!</div>
+
+<script>
+const RECORDS = [{"id": 101, "date": "2026-02-27T11:56:19", "text": "Una visualizzazione interattiva per capire cosa succede davvero dentro un LLM 🧠 Santiago Ortiz ha lanciato lo stesso prompt su ChatGPT con temperatura alta e visualizzato le risposte come traiettorie semantiche. https://github.com/poloclub/transformer-explainer", "media": null, "urls": ["https://github.com/poloclub/transformer-explainer"], "domains": ["github.com"], "forwarded_from": "Datapizza Community", "file_name": null, "photo": null, "categoria": "github_starred", "destinazione": "GitHub Starred", "proposta": "Aggiungi a Starred GitHub", "comando": "gh api -X PUT /user/starred/poloclub/transformer-explainer", "confidence": 1.0, "metodo": "rule:github_repo_link", "azione_urgente_p": 0.4}, {"id": 102, "date": "2026-10-21T09:48:55", "text": "Run these commands in terminal:\n1. Close Hermes Desktop\n2. hermes gateway stop --all\n3. uv pip install --upgrade edge-tts>=7.3.1\n4. hermes gateway start", "media": null, "urls": [], "domains": [], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "cheatsheet_terminale", "destinazione": "Notion: Cheatsheet & Terminal Snippets", "proposta": "Salva blocco comandi in Notion Cheatsheet", "comando": "", "confidence": 1.0, "metodo": "rule:terminal_cheatsheet_keyword", "azione_urgente_p": 0.6}, {"id": 103, "date": "2026-05-14T15:20:10", "text": "Come funziona davvero un Large Language Model? L'introduzione agli LLM firmata Andrej Karpathy https://youtu.be/zjkBMFhNj_g", "media": null, "urls": ["https://youtu.be/zjkBMFhNj_g"], "domains": ["youtu.be"], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "ai_tech_generico", "destinazione": "Notion: Tech & AI Knowledge Base", "proposta": "Salva in Notion Database 'Tech & AI Knowledge Base'", "comando": "", "confidence": 0.98, "metodo": "model:tev1:0.8b", "azione_urgente_p": 0.3}, {"id": 104, "date": "2026-07-12T10:05:00", "text": "Trading algoritmico con python e broker API: setup connessione MT5, gestione ordini a mercato e trailing stop per il bot trading-agent.", "media": null, "urls": [], "domains": [], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "trading_wiki", "destinazione": "GitHub Wiki: trading-agent-wiki", "proposta": "Aggiungi a repository wiki 'trading-agent-wiki'", "comando": "Salva snippet in docs/trading-agent-wiki", "confidence": 1.0, "metodo": "rule:trading_agent_keyword", "azione_urgente_p": 0.5}, {"id": 105, "date": "2026-04-18T10:50:57", "text": "Aggiornare CV con certificazione Google Cloud Base e progetto Trading Agent open source.", "media": null, "urls": [], "domains": [], "forwarded_from": null, "file_name": "CV_Aggiornato_2026.pdf", "photo": null, "categoria": "carriera_studio", "destinazione": "Notion: Private Pages Carriera & Studio", "proposta": "Salva in Notion 'Carriera & Università'", "comando": "", "confidence": 1.0, "metodo": "rule:career_study_keyword", "azione_urgente_p": 0.7}, {"id": 106, "date": "2026-03-10T18:30:00", "text": "Allenamento ipertrofia: myo reps sulle alzate laterali (1 serie pesante da 12, poi 4 mini-set da 3 con 15s di recupero).", "media": null, "urls": [], "domains": [], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "fitness_allenamento", "destinazione": "Notion: Fitness & Workout", "proposta": "Aggiungi a Notion scheda workout/fitness", "comando": "", "confidence": 0.95, "metodo": "rule:gym_workout_keyword", "azione_urgente_p": 0.2}, {"id": 107, "date": "2026-06-01T12:00:00", "text": "Ricetta meal prep veloce: riso basmati, pollo marinato alla soia e zenzero con verdure croccanti al vapore. https://www.instagram.com/reel/recipe_example", "media": null, "urls": ["https://www.instagram.com/reel/recipe_example"], "domains": ["instagram.com"], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "ricette_meal_prep", "destinazione": "Notion: Meal Planner & Ricette", "proposta": "Aggiungi a Notion Meal Planner", "comando": "yt-dlp \"https://www.instagram.com/reel/recipe_example\"", "confidence": 0.95, "metodo": "rule:recipe_food_keyword", "azione_urgente_p": 0.2}, {"id": 108, "date": "2026-10-09T00:21:54", "text": "Nuovo beat inedito tha Supreme / yungest Moonstar https://youtu.be/PxpFzHGasGI", "media": null, "urls": ["https://youtu.be/PxpFzHGasGI"], "domains": ["youtu.be"], "forwarded_from": null, "file_name": null, "photo": null, "categoria": "musica_thasup", "destinazione": "Archivio Thasup & Playlist", "proposta": "Download audio offline con yt-dlp", "comando": "yt-dlp -x --audio-format mp3 \"https://youtu.be/PxpFzHGasGI\"", "confidence": 1.0, "metodo": "rule:thasup_youtube_id", "azione_urgente_p": 0.1}];
+const CATEGORIES = {"github_starred": {"description": "Repository GitHub, codice sorgente o progetti open source da esplorare o salvare tra i preferiti", "destination": "GitHub Starred", "action": "Aggiungi a Starred GitHub (`gh api -X PUT /user/starred/...`)"}, "cheatsheet_terminale": {"description": "Comandi da terminale, script bash/python, procedure di setup, configurazioni (.env, audio, tts) o cheatsheet pratici", "destination": "Notion: Cheatsheet & Terminal Snippets", "action": "Salva in Notion Database 'Cheatsheet & Terminal Snippets'"}, "ai_tech_generico": {"description": "Articoli, video, paper, prompt engineering, spiegazioni o tool di Intelligenza Artificiale e software dev generico", "destination": "Notion: Tech & AI Knowledge Base", "action": "Salva in Notion Database 'Tech & AI Knowledge Base'"}, "trading_wiki": {"description": "Trading algoritmico, indicatori per bot, script Python di trading, credenziali broker MT5, posizioni insider trading", "destination": "GitHub Wiki: trading-agent-wiki", "action": "Aggiungi alla wiki repository GitHub 'trading-agent-wiki'"}, "finanza_generale": {"description": "Macroeconomia, tassi di interesse, bond vigilantes, mercati finanziari, libri ed educazione finanziaria", "destination": "Notion: Finanza & Investimenti", "action": "Salva in Notion Database 'Finanza & Investimenti'"}, "carriera_studio": {"description": "Curriculum vitae (CV), università (Bocconi, IULM, Cattolica), esami, orari lezioni, bandi ammissione e lavoro", "destination": "Notion: Private Pages Carriera & Studio", "action": "Salva in Notion Pagina Privata 'Carriera & Università'"}, "fitness_allenamento": {"description": "Palestra, allenamento con i pesi, dropset, myo reps, serie, carichi ed esecuzione esercizi", "destination": "Notion: Fitness & Workout", "action": "Salva in Notion Database 'Fitness & Workout'"}, "ricette_meal_prep": {"description": "Ricette, cibo, meal prep, cucina, idee di alimentazione o video culinari (Reel/TikTok/YouTube)", "destination": "Notion: Meal Planner & Ricette", "action": "Salva in Notion Database 'Meal Planner' (+ download con yt-dlp se video)"}, "documenti_salute": {"description": "Referti medici, allergie, visite sanitarie, libretto di circolazione auto o documenti personali sensibili", "destination": "Notion: Salute & Archivio Locale Cifrato", "action": "Archivia PDF in locale cifrato + log in Notion 'Salute & Documenti'"}, "musica_thasup": {"description": "Brani musicali, spoiler, audio o video di thasup (tha Supreme, yungest Moonstar), beat, SoundCloud o Spotify", "destination": "Archivio Thasup & Playlist", "action": "Download audio offline con `yt-dlp -x --audio-format mp3` + aggiungi a playlist"}, "media_svago_generale": {"description": "Reel Instagram, TikTok, meme, video di intrattenimento, viaggi o contenuti social generici", "destination": "Archivio Video (yt-dlp) & Notion Swipe File", "action": "Download locale video con `yt-dlp` + riferimento in Notion 'Swipe File'"}};
+
+let currentTab = 'tab-all';
+let selectedCategory = 'all';
+let maskPasswords = true;
+
+const CAT_LABELS = {
+  all: "Tutte le categorie",
+  ai_tech_generico: "🤖 AI & Tech KB",
+  github_starred: "⭐ GitHub Repos",
+  trading_wiki: "📈 Trading Wiki",
+  finanza_generale: "💰 Finanza & Macro",
+  carriera_studio: "🎓 Carriera & Studio",
+  fitness_allenamento: "🏋️ Fitness & Workout",
+  ricette_meal_prep: "🥗 Ricette & Meal Prep",
+  documenti_salute: "🏥 Documenti & Salute",
+  musica_thasup: "🎵 Musica Thasup",
+  cheatsheet_terminale: "💻 Cheatsheet Terminale",
+  media_svago_generale: "📱 Media & Svago"
+};
+
+function init() {
+  renderCategoryPills();
+  renderCards(RECORDS);
+  generateGitHubScript();
+  generateYtDlpScript();
+  generateNotionSummary();
+  generateTradingWiki();
+  generateSecurityBox();
+}
+
+function switchTab(tabId) {
+  currentTab = tabId;
+  const tabs = ['tab-all', 'tab-github', 'tab-ytdlp', 'tab-notion', 'tab-trading', 'tab-security'];
+  tabs.forEach(t => {
+    const el = document.getElementById('view-' + t);
+    const btn = document.getElementById('btn-' + t);
+    if (el) el.hidden = (t !== tabId);
+    if (btn) btn.classList.toggle('active', t === tabId);
+  });
+}
+
+function renderCategoryPills() {
+  const counts = {};
+  RECORDS.forEach(r => {
+    counts[r.categoria] = (counts[r.categoria] || 0) + 1;
+  });
+  
+  const container = document.getElementById('categoryPills');
+  let html = `<button class="pill active" onclick="filterByCat('all')">Tutti (${RECORDS.length})</button>`;
+  
+  Object.keys(CAT_LABELS).forEach(k => {
+    if (k === 'all') return;
+    const cnt = counts[k] || 0;
+    if (cnt > 0) {
+      html += `<button class="pill" id="pill-${k}" onclick="filterByCat('${k}')">${CAT_LABELS[k]} (${cnt})</button>`;
+    }
+  });
+  container.innerHTML = html;
+}
+
+function filterByCat(cat) {
+  selectedCategory = cat;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  const activePill = cat === 'all' ? document.querySelector('.pill') : document.getElementById('pill-' + cat);
+  if (activePill) activePill.classList.add('active');
+  switchTab('tab-all');
+  filterCards();
+}
+
+function filterCards() {
+  const q = document.getElementById('searchInput').value.toLowerCase().trim();
+  const filtered = RECORDS.filter(r => {
+    const matchCat = (selectedCategory === 'all' || r.categoria === selectedCategory);
+    const text = (r.text || '').toLowerCase();
+    const dest = (r.destinazione || '').toLowerCase();
+    const domains = (r.domains || []).join(' ').toLowerCase();
+    const matchQ = !q || text.includes(q) || dest.includes(q) || domains.includes(q) || String(r.id).includes(q);
+    return matchCat && matchQ;
+  });
+  renderCards(filtered);
+}
+
+function getBadgeClass(cat) {
+  switch(cat) {
+    case 'ai_tech_generico': return 'badge-ai';
+    case 'github_starred': return 'badge-github';
+    case 'trading_wiki': return 'badge-trading';
+    case 'finanza_generale': return 'badge-finanza';
+    case 'carriera_studio': return 'badge-carriera';
+    case 'fitness_allenamento': return 'badge-fitness';
+    case 'ricette_meal_prep': return 'badge-ricette';
+    case 'musica_thasup': return 'badge-thasup';
+    case 'cheatsheet_terminale': return 'badge-cheatsheet';
+    case 'documenti_salute': return 'badge-salute';
+    default: return 'badge-media';
+  }
+}
+
+function renderCards(records) {
+  const grid = document.getElementById('cardsGrid');
+  if (records.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">Nessun messaggio trovato con i filtri attuali.</div>';
+    return;
+  }
+  
+  grid.innerHTML = records.map(r => {
+    const badgeCls = getBadgeClass(r.categoria);
+    const catLabel = CAT_LABELS[r.categoria] || r.categoria;
+    const dateStr = r.date ? r.date.split('T')[0] : '';
+    const textEscaped = escapeHtml(r.text || '(Nessun testo)').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    
+    let attachHtml = '';
+    if (r.file_name) {
+      attachHtml = `<div class="card-attachment">📎 File: ${escapeHtml(r.file_name)}</div>`;
+    } else if (r.photo) {
+      attachHtml = `<div class="card-attachment">📷 Foto: ${escapeHtml(r.photo)}</div>`;
+    }
+    
+    let cmdHtml = '';
+    if (r.comando) {
+      cmdHtml = `
+        <div style="display:flex;gap:6px;align-items:center;">
+          <div class="action-cmd">${escapeHtml(r.comando)}</div>
+          <button class="btn btn-sm" onclick="copyText('${escapeQuotes(r.comando)}')">Copia</button>
+        </div>
+      `;
+    }
+    
+    return `
+      <div class="msg-card">
+        <div>
+          <div class="card-top">
+            <span class="badge ${badgeCls}">${catLabel}</span>
+            <span class="card-date">#${r.id} · ${dateStr}</span>
+          </div>
+          <div class="card-text" style="margin-top:10px;">${textEscaped}</div>
+          ${attachHtml}
+        </div>
+        
+        <div class="card-bottom">
+          <div class="card-dest">
+            <span class="dest-label">🎯 ${escapeHtml(r.destinazione)}</span>
+            <span class="conf-pill">conf: ${Math.round((r.confidence||0)*100)}%</span>
+          </div>
+          ${cmdHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function generateGitHubScript() {
+  const ghItems = RECORDS.filter(r => r.categoria === 'github_starred' || (r.text || '').includes('github.com/'));
+  let lines = ['#!/usr/bin/env bash', '# Auto-generated: Star Telegram Saved Repos with GitHub CLI\n'];
+  ghItems.forEach(g => {
+    const m = (g.text || '').match(/github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/);
+    if (m && m[1] && m[2]) {
+      lines.push(`echo "Starring ${m[1]}/${m[2]}..."`);
+      lines.push(`gh api -X PUT /user/starred/${m[1]}/${m[2]}`);
+    }
+  });
+  document.getElementById('github-script').textContent = lines.join('\n');
+}
+
+function generateYtDlpScript() {
+  let lines = ['#!/usr/bin/env bash', '# Batch download of Instagram Reels, TikTok and Thasup tracks\n', 'mkdir -p ~/Downloads/Telegram_Media && cd ~/Downloads/Telegram_Media\n'];
+  
+  lines.push('# === THASUP AUDIO TRACKS ===');
+  RECORDS.filter(r => r.categoria === 'musica_thasup' && r.urls && r.urls.length > 0).forEach(r => {
+    lines.push(`yt-dlp -x --audio-format mp3 "${r.urls[0]}"`);
+  });
+  
+  lines.push('\n# === INSTAGRAM REELS & TIKTOK ===');
+  RECORDS.filter(r => r.categoria === 'media_svago_generale' && r.urls && r.urls.length > 0).forEach(r => {
+    lines.push(`yt-dlp "${r.urls[0]}"`);
+  });
+  
+  document.getElementById('ytdlp-script').textContent = lines.join('\n');
+}
+
+function generateNotionSummary() {
+  const groups = {};
+  RECORDS.forEach(r => {
+    const dest = r.destinazione || 'Notion: Inbox';
+    groups[dest] = groups[dest] || [];
+    groups[dest].push(r);
+  });
+  
+  let lines = ['=== SUDDIVISIONE NOTION SECOND BRAIN ===\n'];
+  Object.keys(groups).sort().forEach(dest => {
+    lines.push(`📁 ${dest} (${groups[dest].length} elementi)`);
+    groups[dest].slice(0, 5).forEach(item => {
+      const txt = (item.text || item.file_name || '').replace(/\n/g, ' ').substring(0, 70);
+      lines.push(`   - [#${item.id}] ${txt}`);
+    });
+    if (groups[dest].length > 5) {
+      lines.push(`   ... e altri ${groups[dest].length - 5} elementi.`);
+    }
+    lines.push('');
+  });
+  document.getElementById('notion-summary').textContent = lines.join('\n');
+}
+
+function generateTradingWiki() {
+  const items = RECORDS.filter(r => r.categoria === 'trading_wiki');
+  let lines = ['# trading-agent-wiki: Note e Risorse Estratte da Telegram\n'];
+  items.forEach(t => {
+    lines.push(`## ID ${t.id} (${t.date ? t.date.split('T')[0] : ''})`);
+    lines.push(t.text || '(File allegato: ' + t.file_name + ')');
+    lines.push('---');
+  });
+  document.getElementById('trading-wiki-box').textContent = lines.join('\n');
+}
+
+function generateSecurityBox() {
+  const secItems = RECORDS.filter(r => {
+    const t = (r.text || '').toLowerCase();
+    return t.includes('login') || t.includes('password') || t.includes('pin code') || t.includes('!xd4') || t.includes('czbrl') || t.includes('m$szy') || t.includes('8gxk$') || t.includes('oracle') || t.includes('admiral');
+  });
+  
+  let lines = ['⚠️ CREDENZIALI IN CHIARO TROVATE NEI MESSAGGI SALVATI:\n'];
+  secItems.forEach(s => {
+    lines.push(`[#${s.id}] Data: ${s.date ? s.date.split('T')[0] : ''}`);
+    if (maskPasswords) {
+      const masked = s.text.replace(/([!#$&%a-zA-Z0-9](8,))/g, '••••••••••••');
+      lines.push(masked);
+    } else {
+      lines.push(s.text);
+    }
+    lines.push('----------------------------------------');
+  });
+  document.getElementById('security-box').textContent = lines.join('\n');
+}
+
+function toggleMaskPasswords() {
+  maskPasswords = !maskPasswords;
+  generateSecurityBox();
+}
+
+function copyText(str) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(str).then(showToast).catch(() => {
+      prompt("Copia il testo:", str);
+    });
+  } else {
+    prompt("Copia il testo:", str);
+  }
+}
+
+function copyToClipboard(elementId) {
+  const el = document.getElementById(elementId);
+  if (el) {
+    copyText(el.textContent);
+  }
+}
+
+function showToast() {
+  const t = document.getElementById('toast');
+  t.hidden = false;
+  setTimeout(() => { t.hidden = true; }, 2000);
+}
+
+
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const text = evt.target.result.trim();
+      let loaded = [];
+      if (text.startsWith('[')) {
+        loaded = JSON.parse(text);
+      } else {
+        loaded = text.split('\n').filter(Boolean).map(l => JSON.parse(l));
+      }
+      if (loaded.length > 0) {
+        RECORDS.length = 0;
+        RECORDS.push(...loaded);
+        init();
+        showToast('Caricati ' + loaded.length + ' record con successo!');
+      }
+    } catch(err) {
+      alert('Errore lettura file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(RECORDS, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'telegram_classified_messages.json';
+  a.click();
+}
+
+function escapeHtml(str) {
+  return (str || '')
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeQuotes(str) {
+  return (str || '').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+
+// Auto-detect results.jsonl if hosted locally or allow drag & drop
+async function tryAutoLoadLocal() {
+  try {
+    const res = await fetch('./results.jsonl');
+    if (res.ok) {
+      const text = await res.text();
+      const lines = text.trim().split('\n').filter(Boolean);
+      if (lines.length > 0) {
+        const loaded = lines.map(l => JSON.parse(l));
+        RECORDS.length = 0;
+        RECORDS.push(...loaded);
+        init();
+        showToast('Caricati ' + loaded.length + ' messaggi da results.jsonl locale');
+      }
+    }
+  } catch (e) {
+    // Keep demo sample data
+  }
+}
+window.addEventListener('DOMContentLoaded', () => {
+  tryAutoLoadLocal();
+});
+
+window.addEventListener('DOMContentLoaded', init);
+</script>

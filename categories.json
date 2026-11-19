@@ -1,0 +1,57 @@
+{
+  "github_starred": {
+    "description": "Repository GitHub, codice sorgente o progetti open source da esplorare o salvare tra i preferiti",
+    "destination": "GitHub Starred",
+    "action": "Aggiungi a Starred GitHub (`gh api -X PUT /user/starred/...`)"
+  },
+  "cheatsheet_terminale": {
+    "description": "Comandi da terminale, script bash/python, procedure di setup, configurazioni (.env, audio, tts) o cheatsheet pratici",
+    "destination": "Notion: Cheatsheet & Terminal Snippets",
+    "action": "Salva in Notion Database 'Cheatsheet & Terminal Snippets'"
+  },
+  "ai_tech_generico": {
+    "description": "Articoli, video, paper, prompt engineering, spiegazioni o tool di Intelligenza Artificiale e software dev generico",
+    "destination": "Notion: Tech & AI Knowledge Base",
+    "action": "Salva in Notion Database 'Tech & AI Knowledge Base'"
+  },
+  "trading_wiki": {
+    "description": "Trading algoritmico, indicatori per bot, script Python di trading, credenziali broker MT5, posizioni insider trading",
+    "destination": "GitHub Wiki: trading-agent-wiki",
+    "action": "Aggiungi alla wiki repository GitHub 'trading-agent-wiki'"
+  },
+  "finanza_generale": {
+    "description": "Macroeconomia, tassi di interesse, bond vigilantes, mercati finanziari, libri ed educazione finanziaria",
+    "destination": "Notion: Finanza & Investimenti",
+    "action": "Salva in Notion Database 'Finanza & Investimenti'"
+  },
+  "carriera_studio": {
+    "description": "Curriculum vitae (CV), università (Bocconi, IULM, Cattolica), esami, orari lezioni, bandi ammissione e lavoro",
+    "destination": "Notion: Private Pages Carriera & Studio",
+    "action": "Salva in Notion Pagina Privata 'Carriera & Università'"
+  },
+  "fitness_allenamento": {
+    "description": "Palestra, allenamento con i pesi, dropset, myo reps, serie, carichi ed esecuzione esercizi",
+    "destination": "Notion: Fitness & Workout",
+    "action": "Salva in Notion Database 'Fitness & Workout'"
+  },
+  "ricette_meal_prep": {
+    "description": "Ricette, cibo, meal prep, cucina, idee di alimentazione o video culinari (Reel/TikTok/YouTube)",
+    "destination": "Notion: Meal Planner & Ricette",
+    "action": "Salva in Notion Database 'Meal Planner' (+ download con yt-dlp se video)"
+  },
+  "documenti_salute": {
+    "description": "Referti medici, allergie, visite sanitarie, libretto di circolazione auto o documenti personali sensibili",
+    "destination": "Notion: Salute & Archivio Locale Cifrato",
+    "action": "Archivia PDF in locale cifrato + log in Notion 'Salute & Documenti'"
+  },
+  "musica_thasup": {
+    "description": "Brani musicali, spoiler, audio o video di thasup (tha Supreme, yungest Moonstar), beat, SoundCloud o Spotify",
+    "destination": "Archivio Thasup & Playlist",
+    "action": "Download audio offline con `yt-dlp -x --audio-format mp3` + aggiungi a playlist"
+  },
+  "media_svago_generale": {
+    "description": "Reel Instagram, TikTok, meme, video di intrattenimento, viaggi o contenuti social generici",
+    "destination": "Archivio Video (yt-dlp) & Notion Swipe File",
+    "action": "Download locale video con `yt-dlp` + riferimento in Notion 'Swipe File'"
+  }
+}

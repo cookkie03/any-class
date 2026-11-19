@@ -1,0 +1,31 @@
+# Python & environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# Telegram raw private exports (Contains personal chat history, media & credentials)
+ChatExport_*/
+result.json
+*.jsonl
+results.jsonl
+dashboard_private.html
+
+# Local media archives
+photos/
+video_files/
+voice_messages/
+files/
+Downloads/
+
+# Operating system & editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
