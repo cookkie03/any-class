@@ -236,9 +236,16 @@ class TelegramBot:
         self.api_url = f"https://api.telegram.org/bot{self.token}"
         self.file_url = f"https://api.telegram.org/file/bot{self.token}"
         self.allowed_user_id = cfg["telegram"].get("allowed_user_id")
-        self.inbox_dir = HERE / cfg["preprocessing"].get("inbox_dir", "./inbox")
-        self.inbox_dir.mkdir(parents=True, exist_ok=True)
-        self.results_file = HERE / cfg["preprocessing"].get("results_file", "./results.jsonl")
+
+        paths_cfg = cfg.get("paths", {})
+        self.pending_dir = HERE / paths_cfg.get("pending_dir", "./sources/pending")
+        self.processed_dir = HERE / paths_cfg.get("processed_dir", "./sources/processed")
+        self.failed_dir = HERE / paths_cfg.get("failed_dir", "./sources/failed")
+        self.results_file = HERE / paths_cfg.get("results_file", "./results.jsonl")
+
+        self.pending_dir.mkdir(parents=True, exist_ok=True)
+        self.processed_dir.mkdir(parents=True, exist_ok=True)
+        self.failed_dir.mkdir(parents=True, exist_ok=True)
 
     def call_api(self, method, data=None):
         url = f"{self.api_url}/{method}"
@@ -289,7 +296,7 @@ class TelegramBot:
         res = self.call_api("getFile", {"file_id": file_id})
         file_path = res["result"]["file_path"]
         download_url = f"{self.file_url}/{file_path}"
-        dest_path = self.inbox_dir / dest_filename
+        dest_path = self.pending_dir / dest_filename
         with urllib.request.urlopen(download_url) as resp:
             dest_path.write_bytes(resp.read())
         return dest_path
@@ -428,7 +435,19 @@ class TelegramBot:
 
         # 5. Run Multimodal Decision Model (0 generated tokens)
         t0 = time.time()
-        dec = run_decision(state_text, image_b64, self.cfg)
+        try:
+            dec = run_decision(state_text, image_b64, self.cfg)
+            if saved_path and saved_path.is_file():
+                proc_path = self.processed_dir / saved_path.name
+                saved_path.rename(proc_path)
+                file_saved = str(proc_path)
+                if photo_rel:
+                    photo_rel = f"sources/processed/{saved_path.name}"
+        except Exception as e:
+            if saved_path and saved_path.is_file():
+                fail_path = self.failed_dir / saved_path.name
+                saved_path.rename(fail_path)
+            raise e
         latency = round(time.time() - t0, 2)
 
         # 6. Synthesize Terminal Command

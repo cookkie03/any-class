@@ -35,12 +35,15 @@ preprocessing:
   image_max_side_px: 512
 
   # Cartella dove archiviare gli allegati scaricati dal bot
-  inbox_dir: "./inbox"
+  inbox_dir: "./sources/pending"
 
-  # File JSONL dove salvare i record classificati
+# Percorsi Pipeline Sorgenti (Ingestion & Lifecycle)
+paths:
+  sources_dir: "./sources"
+  pending_dir: "./sources/pending"
+  processed_dir: "./sources/processed"
+  failed_dir: "./sources/failed"
   results_file: "./results.jsonl"
-
-  # Dashboard HTML locale da aggiornare automaticamente
   dashboard_file: "./dashboard_private.html"
 
 # ==============================================================================

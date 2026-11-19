@@ -16,6 +16,14 @@ env/
 venv/
 ENV/
 
+# Ingestion pipeline sources (user data files)
+sources/pending/*
+!sources/pending/.gitkeep
+sources/failed/*
+!sources/failed/.gitkeep
+sources/processed/*
+!sources/processed/.gitkeep
+
 # Telegram raw private exports (Contains personal chat history, media & credentials)
 ChatExport_*/
 result.json
