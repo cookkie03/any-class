@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""AnyClass Telegram Bot - Real-time zero-token multimodal classification listener.
+"""AnyClass Telegram Bot - Real-time zero-token multimodal classification listener with Interactive Approval.
 
 Replaces manual export imports: send or forward any link, text, photo, audio or document
 to your Telegram Bot. The message is preprocessed (yt-dlp metadata/transcripts, image resize,
-domain extraction) and categorized in real time by local Ollama decision models (d1-omni:600m / tev1:0.8b).
+domain extraction), categorized by local Ollama decision models (d1-omni:600m / tev1:0.8b),
+and responds with an interactive [ ✅ Approva ed Esegui ] button to run the synthesized terminal command.
 
 Usage:
   python3 telegram_bot.py              # Start polling
   python3 telegram_bot.py --test-url "https://youtu.be/PxpFzHGasGI"
   python3 telegram_bot.py --test-text "ricordati di pagare la bolletta"
-  python3 telegram_bot.py --test-image "photos/photo_1@16-09-2023_11-12-35.jpg"
+  python3 telegram_bot.py --test-image "path/to/image.jpg"
 """
-import argparse, base64, io, json, os, re, subprocess, sys, time, urllib.request, urllib.parse
+import argparse, base64, io, json, os, re, shlex, subprocess, sys, time, urllib.request, urllib.parse
 from pathlib import Path
 from urllib.parse import urlparse
 import yaml
@@ -19,6 +20,9 @@ import yaml
 HERE = Path(__file__).parent.resolve()
 CONFIG_FILE = HERE / "config.yaml"
 URL_RE = re.compile(r"https?://[^\s<>\")\]]+")
+
+# In-memory store for pending user approvals: action_id -> dict
+PENDING_ACTIONS = {}
 
 
 # ---------------------------------------------------------------- Configuration
@@ -28,11 +32,9 @@ def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         raw = f.read()
 
-    # Expand environment variables like ${TELEGRAM_BOT_TOKEN}
     expanded = re.sub(r"\$\{([A-Z0-9_]+)\}", lambda m: os.environ.get(m.group(1), ""), raw)
     cfg = yaml.safe_load(expanded)
 
-    # Fallback to direct env var if not set in yaml
     if not cfg.get("telegram", {}).get("bot_token"):
         cfg.setdefault("telegram", {})["bot_token"] = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
@@ -61,7 +63,6 @@ def extract_media_metadata(url, ytdlp_path="yt-dlp"):
             channel = d.get("uploader") or d.get("channel") or ""
             duration = d.get("duration")
 
-            # Check for subtitle / auto-captions summary if available
             subs_summary = ""
             sub_entries = d.get("subtitles") or d.get("automatic_captions") or {}
             if sub_entries:
@@ -115,7 +116,6 @@ def run_decision(state_text, image_b64=None, cfg=None):
     endpoint = cfg["model"].get("endpoint", "http://localhost:11434/v1/systemone")
     classes = cfg["classes"]
 
-    # Choose model: multimodal if image is present, else text_only
     if image_b64:
         active_model = cfg["model"].get("multimodal", "d1-omni:600m")
     else:
@@ -159,7 +159,8 @@ def run_decision(state_text, image_b64=None, cfg=None):
     class_meta = classes.get(cat_key, {
         "name": cat_key,
         "destination": "Notion: Inbox",
-        "action": "Smista manualmente"
+        "action": "Smista manualmente",
+        "command_template": None
     })
 
     return {
@@ -167,10 +168,40 @@ def run_decision(state_text, image_b64=None, cfg=None):
         "nome_classe": class_meta.get("name", cat_key),
         "destinazione": class_meta.get("destination", "Notion"),
         "proposta": class_meta.get("action", ""),
+        "command_template": class_meta.get("command_template"),
         "confidence": round(float(conf), 3),
         "azione_urgente_p": round(float(urgent), 2),
         "modello": active_model,
     }
+
+
+def synthesize_command(dec, urls, file_saved, text):
+    """Safely interpolate command template with real runtime parameters."""
+    tpl = dec.get("command_template")
+    if not tpl:
+        return ""
+
+    params = {}
+    if urls:
+        params["url"] = urls[0]
+
+    if file_saved:
+        params["file_path"] = str(Path(file_saved).resolve())
+
+    # Detect GitHub repo
+    gh_match = re.search(r"github\.com/([a-zA-Z0-9_\.-]+)/([a-zA-Z0-9_\.-]+)", text)
+    if gh_match:
+        params["github_repo"] = f"{gh_match.group(1)}/{gh_match.group(2)}"
+
+    try:
+        # If template requires a parameter we don't have (e.g. url or file_path), skip command
+        needed_keys = re.findall(r"\{([a-zA-Z0-9_]+)\}", tpl)
+        for k in needed_keys:
+            if k not in params:
+                return ""
+        return tpl.format(**params)
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------- Telegram Client
@@ -182,7 +213,7 @@ class TelegramBot:
             sys.exit("ERRORE: Inserisci il token Telegram in config.yaml o imposta TELEGRAM_BOT_TOKEN")
         self.api_url = f"https://api.telegram.org/bot{self.token}"
         self.file_url = f"https://api.telegram.org/file/bot{self.token}"
-        self.allowed_chat_id = cfg["telegram"].get("allowed_chat_id")
+        self.allowed_user_id = cfg["telegram"].get("allowed_user_id")
         self.inbox_dir = HERE / cfg["preprocessing"].get("inbox_dir", "./inbox")
         self.inbox_dir.mkdir(parents=True, exist_ok=True)
         self.results_file = HERE / cfg["preprocessing"].get("results_file", "./results.jsonl")
@@ -196,7 +227,12 @@ class TelegramBot:
         with urllib.request.urlopen(req, timeout=40) as resp:
             return json.load(resp)
 
-    def send_message(self, chat_id, text, reply_to_message_id=None):
+    def is_authorized(self, user_id):
+        if not self.allowed_user_id:
+            return True
+        return str(user_id) == str(self.allowed_user_id)
+
+    def send_message(self, chat_id, text, reply_to_message_id=None, reply_markup=None):
         data = {
             "chat_id": chat_id,
             "text": text,
@@ -205,7 +241,27 @@ class TelegramBot:
         }
         if reply_to_message_id:
             data["reply_to_message_id"] = reply_to_message_id
+        if reply_markup:
+            data["reply_markup"] = reply_markup
         return self.call_api("sendMessage", data)
+
+    def answer_callback(self, callback_query_id, text=None):
+        data = {"callback_query_id": callback_query_id}
+        if text:
+            data["text"] = text
+        return self.call_api("answerCallbackQuery", data)
+
+    def edit_message(self, chat_id, message_id, text, reply_markup=None):
+        data = {
+            "chat_id": chat_id,
+            "message_id": message_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
+        }
+        if reply_markup is not None:
+            data["reply_markup"] = reply_markup
+        return self.call_api("editMessageText", data)
 
     def download_file(self, file_id, dest_filename):
         res = self.call_api("getFile", {"file_id": file_id})
@@ -216,15 +272,83 @@ class TelegramBot:
             dest_path.write_bytes(resp.read())
         return dest_path
 
+    def handle_callback_query(self, cb):
+        cb_id = cb["id"]
+        from_user = cb["from"]
+        user_id = from_user["id"]
+        chat_id = cb["message"]["chat"]["id"]
+        msg_id = cb["message"]["message_id"]
+        data = cb.get("data", "")
+
+        if not self.is_authorized(user_id):
+            self.answer_callback(cb_id, "⛔ Accesso negato: User ID non autorizzato.")
+            return
+
+        parts = data.split(":", 1)
+        action_type = parts[0]
+        act_id = parts[1] if len(parts) > 1 else ""
+
+        if action_type == "ignore":
+            self.answer_callback(cb_id, "Azione ignorata.")
+            orig_text = cb["message"].get("text", "")
+            self.edit_message(chat_id, msg_id, orig_text + "\n\n<i>[❌ Azione ignorata dall'utente]</i>", reply_markup={"inline_keyboard": []})
+            return
+
+        if action_type == "approve":
+            act = PENDING_ACTIONS.get(act_id)
+            if not act:
+                self.answer_callback(cb_id, "⚠️ Azione scaduta o non trovata.")
+                return
+
+            cmd = act["cmd"]
+            self.answer_callback(cb_id, "⚡ Esecuzione comando in corso...")
+
+            # Run command securely on local host
+            try:
+                expanded_cmd = os.path.expanduser(cmd)
+                p = subprocess.run(expanded_cmd, shell=True, capture_output=True, text=True, timeout=120)
+                out = (p.stdout + "\n" + p.stderr).strip()
+                if len(out) > 400:
+                    out = out[:400] + "..."
+
+                status_emoji = "✅" if p.returncode == 0 else "⚠️"
+                result_text = (
+                    f"{status_emoji} <b>COMANDO ESEGUITO:</b>\n"
+                    f"<code>{cmd}</code>\n\n"
+                    f"📋 <b>Output (code {p.returncode}):</b>\n"
+                    f"<pre>{out or '(Nessun output a video)'}</pre>"
+                )
+                self.edit_message(chat_id, msg_id, result_text, reply_markup={"inline_keyboard": []})
+            except Exception as e:
+                err_text = f"❌ <b>ERRORE ESECUZIONE:</b>\n<code>{cmd}</code>\n\nErrore: {e}"
+                self.edit_message(chat_id, msg_id, err_text, reply_markup={"inline_keyboard": []})
+
     def process_message(self, msg):
         chat_id = msg["chat"]["id"]
-        if self.allowed_chat_id and str(chat_id) != str(self.allowed_chat_id):
-            print(f"Messaggio ignorato da chat non autorizzata: {chat_id}")
+        from_user = msg.get("from", {})
+        user_id = from_user.get("id")
+
+        raw_text = (msg.get("text") or msg.get("caption") or "").strip()
+
+        # Command /start or /myid to display User ID
+        if raw_text in ["/start", "/myid", "/id"]:
+            welcome = (
+                f"👋 Ciao {from_user.get('first_name', '')}!\n\n"
+                f"🔑 Il tuo <b>User ID Telegram</b> è: <code>{user_id}</code>\n\n"
+                f"Per sicurezza e per abilitare l'approvazione dei comandi solo a te, imposta in <code>config.yaml</code>:\n"
+                f"<pre>telegram:\n  allowed_user_id: {user_id}</pre>\n\n"
+                f"Puoi inviarmi qualsiasi messaggio, link, foto o file e lo categorizzerò in tempo reale!"
+            )
+            self.send_message(chat_id, welcome, reply_to_message_id=msg["message_id"])
+            return
+
+        if not self.is_authorized(user_id):
+            print(f"Messaggio bloccato da utente non autorizzato ID: {user_id}")
+            self.send_message(chat_id, "⛔ Accesso negato: questo bot è privato.")
             return
 
         msg_id = msg["message_id"]
         date_iso = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(msg.get("date", time.time())))
-        raw_text = msg.get("text") or msg.get("caption") or ""
         urls = URL_RE.findall(raw_text)
         domains = sorted({urlparse(u).netloc.removeprefix("www.") for u in urls})
 
@@ -265,7 +389,6 @@ class TelegramBot:
                     ytdlp_meta = extract_media_metadata(u, ytdlp_path)
                     break
 
-        # Construct Evidence state text
         evidence_parts = []
         if raw_text:
             evidence_parts.append(raw_text)
@@ -281,20 +404,15 @@ class TelegramBot:
 
         state_text = "\n".join(evidence_parts).strip() or "Immagine/allegato salvato senza testo."
 
-        # 5. Run Decision Model
+        # 5. Run Multimodal Decision Model (0 generated tokens)
         t0 = time.time()
         dec = run_decision(state_text, image_b64, self.cfg)
         latency = round(time.time() - t0, 2)
 
-        # Command synthesis
-        cmd = ""
-        if urls and ("instagram.com" in urls[0] or "tiktok.com" in urls[0] or "youtu" in urls[0]):
-            if dec["categoria"] == "musica_thasup":
-                cmd = f"yt-dlp -x --audio-format mp3 \"{urls[0]}\""
-            else:
-                cmd = f"yt-dlp \"{urls[0]}\""
+        # 6. Synthesize Terminal Command
+        cmd = synthesize_command(dec, urls, file_saved, raw_text)
 
-        # 6. Save Record to results.jsonl
+        # 7. Save Record to results.jsonl
         rec = {
             "id": msg_id,
             "date": date_iso,
@@ -318,7 +436,7 @@ class TelegramBot:
         with open(self.results_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
-        # 7. Reply on Telegram
+        # 8. Construct Telegram Response with Approval Keyboard
         reply_lines = [
             f"🎯 <b>Categoria:</b> {dec['nome_classe']} ({int(dec['confidence']*100)}%)",
             f"📌 <b>Destinazione:</b> {dec['destinazione']}",
@@ -327,14 +445,36 @@ class TelegramBot:
         if ytdlp_meta and ytdlp_meta.get("title"):
             reply_lines.append(f"ℹ️ <b>Titolo:</b> {ytdlp_meta['title']}")
         if cmd:
-            reply_lines.append(f"💻 <code>{cmd}</code>")
+            reply_lines.append(f"💻 <b>Comando:</b>\n<code>{cmd}</code>")
         reply_lines.append(f"⏱️ <i>{latency}s · {dec['modello']} (0 token)</i>")
 
-        self.send_message(chat_id, "\n".join(reply_lines), reply_to_message_id=msg_id)
-        print(f"[{msg_id}] {dec['nome_classe']} ({dec['confidence']}) in {latency}s -> {dec['destinazione']}")
+        # Interactive buttons
+        inline_keyboard = []
+        if cmd:
+            action_id = f"act_{msg_id}_{int(time.time())}"
+            PENDING_ACTIONS[action_id] = {
+                "cmd": cmd,
+                "categoria": dec["categoria"],
+                "destinazione": dec["destinazione"]
+            }
+            # Short label for button
+            btn_label = "✅ Esegui: " + (cmd.split()[0] if len(cmd.split()) > 0 else "Comando")
+            if len(btn_label) > 30:
+                btn_label = btn_label[:30] + "..."
+            inline_keyboard.append([
+                {"text": btn_label, "callback_data": f"approve:{action_id}"},
+                {"text": "❌ Ignora", "callback_data": f"ignore:{action_id}"}
+            ])
+
+        reply_markup = {"inline_keyboard": inline_keyboard} if inline_keyboard else None
+
+        self.send_message(chat_id, "\n".join(reply_lines), reply_to_message_id=msg_id, reply_markup=reply_markup)
+        print(f"[{msg_id}] {dec['nome_classe']} ({dec['confidence']}) in {latency}s -> {dec['destinazione']} (cmd: {bool(cmd)})")
 
     def start_polling(self):
-        print(f"=== AnyClass Bot in ascolto (modello: {self.cfg['model']['multimodal']}) ===")
+        print(f"=== AnyClass Bot in ascolto ===")
+        print(f"Modello multimodale: {self.cfg['model']['multimodal']}")
+        print(f"User ID autorizzato: {self.allowed_user_id or 'TUTTI (inviami /myid per configurarlo)'}")
         print(f"Premi Ctrl+C per fermare il bot.\n")
         offset = 0
         while True:
@@ -342,7 +482,9 @@ class TelegramBot:
                 res = self.call_api("getUpdates", {"offset": offset, "timeout": 30})
                 for update in res.get("result", []):
                     offset = update["update_id"] + 1
-                    if "message" in update:
+                    if "callback_query" in update:
+                        self.handle_callback_query(update["callback_query"])
+                    elif "message" in update:
                         self.process_message(update["message"])
             except KeyboardInterrupt:
                 print("\nBot arrestato dall'utente.")
@@ -357,8 +499,11 @@ def run_cli_test(args, cfg):
     print("=== TEST DECISION MODEL MULTIMODALE ===")
     state_text = ""
     img_b64 = None
+    urls = []
+    file_saved = None
 
     if args.test_url:
+        urls = [args.test_url]
         ytdlp_path = cfg["preprocessing"].get("ytdlp_path", "yt-dlp")
         meta = extract_media_metadata(args.test_url, ytdlp_path)
         print(f"URL: {args.test_url}")
@@ -370,24 +515,28 @@ def run_cli_test(args, cfg):
 
     elif args.test_text:
         state_text = args.test_text
+        urls = URL_RE.findall(args.test_text)
 
     elif args.test_image:
         p = Path(args.test_image)
         if not p.is_file():
             sys.exit(f"Immagine non trovata: {p}")
         img_b64 = resize_image_base64(p, cfg["preprocessing"].get("image_max_side_px", 512))
+        file_saved = str(p)
         state_text = "Immagine salvata su Telegram."
         print(f"Immagine caricata: {p} ({len(img_b64)} chars base64)")
 
     t0 = time.time()
     res = run_decision(state_text, img_b64, cfg)
     elapsed = round(time.time() - t0, 2)
+    cmd = synthesize_command(res, urls, file_saved, state_text)
 
     print(f"Risultato in {elapsed}s:")
     print(f"  • Categoria   : {res['nome_classe']} ({res['categoria']})")
     print(f"  • Confidenza  : {res['confidence'] * 100:.1f}%")
     print(f"  • Destinazione: {res['destinazione']}")
     print(f"  • Azione      : {res['proposta']}")
+    print(f"  • Comando     : {cmd or '(Nessun comando sintetizzato)'}")
     print(f"  • Modello     : {res['modello']} (zero token generati)")
 
 

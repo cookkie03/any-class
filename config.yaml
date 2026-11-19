@@ -7,9 +7,10 @@ telegram:
   # Oppure esporta la variabile d'ambiente: export TELEGRAM_BOT_TOKEN="il_tuo_token"
   bot_token: "${TELEGRAM_BOT_TOKEN}"
 
-  # Opzionale: ID numerico della tua chat Telegram per limitare l'accesso solo a te.
-  # Se lasciato vuoto (null), il bot accetta messaggi da qualsiasi chat autorizzata.
-  allowed_chat_id: null
+  # SICUREZZA: Inserisci il tuo ID numerico utente Telegram (es. 123456789).
+  # Solo questo ID potrà inviare messaggi ed eseguire i comandi da terminale approvati.
+  # Se non lo conosci, avvia il bot e mandagli /myid o /start per vederlo.
+  allowed_user_id: null
 
 # Modelli Decisionali Ollama (Zero token generati, inferenza diretta su logit/systemone)
 model:
@@ -43,72 +44,87 @@ preprocessing:
   dashboard_file: "./dashboard_private.html"
 
 # ==============================================================================
-# CLASSI DI CLASSIFICAZIONE (Modificabili liberamente)
-# Il modello sceglierà l'opzione migliore confrontando l'evidence con la description.
+# CLASSI DI CLASSIFICAZIONE & COMANDI DA TERMINALE
+# Per ogni classe puoi definire:
+#   - description: usata dal decision model per scegliere la classe
+#   - destination: dove va a finire nel Second Brain
+#   - action: azione concettuale
+#   - command_template: comando terminale sintetizzato (con parametri {url}, {file_path}, {github_repo})
 # ==============================================================================
 classes:
   github_starred:
     name: "GitHub Repos"
     description: "Repository GitHub, codice open source o progetti software da esplorare o salvare tra i preferiti"
     destination: "GitHub Starred"
-    action: "Aggiungi a Starred GitHub (`gh api -X PUT ...`)"
+    action: "Aggiungi a Starred GitHub"
+    command_template: "gh api -X PUT /user/starred/{github_repo}"
 
   cheatsheet_terminale:
     name: "Cheatsheet Terminale"
     description: "Comandi terminale, script bash/python, procedure di setup, configurazioni (.env, audio, tts) o cheatsheet pratici"
     destination: "Notion: Cheatsheet & Terminal Snippets"
     action: "Salva in Notion Cheatsheet"
+    command_template: null
 
   ai_tech_generico:
     name: "AI & Tech KB"
     description: "Articoli, video, paper, prompt engineering, spiegazioni o tool di Intelligenza Artificiale e software dev generico"
     destination: "Notion: Tech & AI Knowledge Base"
     action: "Salva in Notion Database 'Tech & AI Knowledge Base'"
+    command_template: null
 
   trading_wiki:
     name: "Trading Wiki"
     description: "Trading algoritmico, bot di trading, credenziali broker MT5, indicatori quantitativi, script Python di trading"
     destination: "GitHub Wiki: trading-agent-wiki"
     action: "Aggiungi a GitHub trading-agent-wiki"
+    command_template: null
 
   finanza_generale:
     name: "Finanza & Macro"
     description: "Macroeconomia, tassi di interesse, bond vigilantes, mercati finanziari, libri ed educazione finanziaria"
     destination: "Notion: Finanza & Investimenti"
     action: "Salva in Notion Database 'Finanza & Investimenti'"
+    command_template: null
 
   carriera_studio:
     name: "Carriera & Studio"
     description: "Curriculum vitae (CV), università (Bocconi, IULM, Cattolica), esami, orari lezioni, bandi e lavoro"
     destination: "Notion: Private Pages Carriera & Studio"
     action: "Salva in Notion Pagina Privata 'Carriera & Studio'"
+    command_template: 'mkdir -p ~/Second-Brain/00-InBox/Carriera && cp "{file_path}" ~/Second-Brain/00-InBox/Carriera/'
 
   fitness_allenamento:
     name: "Fitness & Workout"
     description: "Palestra, allenamento con i pesi, dropset, myo reps, serie, carichi ed esecuzione esercizi"
     destination: "Notion: Fitness & Workout"
     action: "Salva in Notion Database 'Fitness & Workout'"
+    command_template: null
 
   ricette_meal_prep:
     name: "Ricette & Meal Prep"
     description: "Ricette, cibo, meal prep, cucina, idee di alimentazione o video culinari (Reel/TikTok/YouTube)"
     destination: "Notion: Meal Planner & Ricette"
     action: "Salva in Notion Database 'Meal Planner'"
+    command_template: 'yt-dlp -o "~/Downloads/Telegram_Media/Ricette/%(title)s.%(ext)s" "{url}"'
 
   documenti_salute:
     name: "Salute & Documenti Personali"
     description: "Referti medici, allergie, visite sanitarie, libretto di circolazione auto o documenti personali sensibili"
     destination: "Notion: Salute & Archivio Locale Cifrato"
     action: "Archivia file protetto + log in Notion 'Salute & Documenti'"
+    command_template: 'mkdir -p ~/Second-Brain/00-InBox/Documenti && cp "{file_path}" ~/Second-Brain/00-InBox/Documenti/'
 
   musica_thasup:
     name: "Musica Thasup"
     description: "Brani musicali, spoiler, audio o video di thasup (tha Supreme, yungest Moonstar), beat, SoundCloud o Spotify"
     destination: "Archivio Thasup & Playlist"
-    action: "Download audio offline con `yt-dlp -x`"
+    action: "Download audio offline con yt-dlp"
+    command_template: 'yt-dlp -x --audio-format mp3 -o "~/Downloads/Telegram_Media/Thasup/%(title)s.%(ext)s" "{url}"'
 
   media_svago_generale:
     name: "Media & Svago"
     description: "Reel Instagram, TikTok, meme, video di intrattenimento, viaggi o contenuti social generici"
     destination: "Archivio Video (yt-dlp) & Notion Swipe File"
-    action: "Download video locale con `yt-dlp`"
+    action: "Download video locale con yt-dlp"
+    command_template: 'yt-dlp -o "~/Downloads/Telegram_Media/Reels/%(title)s.%(ext)s" "{url}"'
