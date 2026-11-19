@@ -10,7 +10,7 @@ telegram:
   # SICUREZZA: Inserisci il tuo ID numerico utente Telegram (es. 123456789).
   # Solo questo ID potrà inviare messaggi ed eseguire i comandi da terminale approvati.
   # Se non lo conosci, avvia il bot e mandagli /myid o /start per vederlo.
-  allowed_user_id: null
+  allowed_user_id: 
 
 # Modelli Decisionali Ollama (Zero token generati, inferenza diretta su logit/systemone)
 model:

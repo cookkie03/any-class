@@ -26,7 +26,23 @@ PENDING_ACTIONS = {}
 
 
 # ---------------------------------------------------------------- Configuration
+def load_dotenv(env_path=HERE / ".env"):
+    """Lightweight zero-dependency .env loader."""
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k = k.strip()
+        v = v.strip().strip("'\"")
+        if k and k not in os.environ:
+            os.environ[k] = v
+
+
 def load_config():
+    load_dotenv()
     if not CONFIG_FILE.exists():
         sys.exit(f"File di configurazione non trovato: {CONFIG_FILE}")
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -35,8 +51,14 @@ def load_config():
     expanded = re.sub(r"\$\{([A-Z0-9_]+)\}", lambda m: os.environ.get(m.group(1), ""), raw)
     cfg = yaml.safe_load(expanded)
 
-    if not cfg.get("telegram", {}).get("bot_token"):
-        cfg.setdefault("telegram", {})["bot_token"] = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    telegram_cfg = cfg.setdefault("telegram", {})
+    if not telegram_cfg.get("bot_token"):
+        telegram_cfg["bot_token"] = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+
+    if not telegram_cfg.get("allowed_user_id"):
+        env_uid = os.environ.get("TELEGRAM_ALLOWED_USER_ID", "").strip()
+        if env_uid:
+            telegram_cfg["allowed_user_id"] = env_uid
 
     return cfg
 
