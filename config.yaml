@@ -28,6 +28,9 @@ preprocessing:
   # Se il messaggio contiene link a YouTube, Instagram, TikTok, usa yt-dlp per estrarre metadati e trascrizione
   extract_video_metadata: true
 
+  # Se il messaggio contiene link web non-video (articoli, corsi, repo, doc), esegue il fetch 100% locale di titolo, meta e contenuto
+  fetch_web_links: true
+
   # Percorso dell'eseguibile yt-dlp
   ytdlp_path: "yt-dlp"
 

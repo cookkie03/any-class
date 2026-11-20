@@ -12,7 +12,7 @@ Usage:
   python3 telegram_bot.py --test-text "ricordati di pagare la bolletta"
   python3 telegram_bot.py --test-image "path/to/image.jpg"
 """
-import argparse, base64, io, json, os, re, shlex, subprocess, sys, time, urllib.request, urllib.parse
+import argparse, base64, html, io, json, os, re, shlex, subprocess, sys, time, urllib.request, urllib.parse
 from pathlib import Path
 from urllib.parse import urlparse
 import yaml
@@ -110,6 +110,62 @@ def extract_media_metadata(url, ytdlp_path="yt-dlp"):
         return {"error": str(e), "text_summary": f"[yt-dlp error: {e}]"}
 
     return None
+
+
+def fetch_local_webpage(url, timeout=8, max_chars=1200):
+    """100% local webpage fetch: extracts title, meta description and clean text body without external services."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
+    }
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            content_type = resp.headers.get("Content-Type", "")
+            if "text" not in content_type and "html" not in content_type and "json" not in content_type:
+                return None
+            raw = resp.read(150000).decode("utf-8", errors="ignore")
+
+            # Title
+            t_match = re.search(r"<title[^>]*>(.*?)</title>", raw, re.I | re.S)
+            title = html.unescape(t_match.group(1).strip()) if t_match else ""
+            title = re.sub(r"\s+", " ", title)
+
+            # Meta description
+            desc = ""
+            for pat in [
+                r'<meta\s+name=["\'](?:description|twitter:description)["\']\s+content=["\'](.*?)["\']',
+                r'<meta\s+property=["\']og:description["\']\s+content=["\'](.*?)["\']'
+            ]:
+                m = re.search(pat, raw, re.I | re.S)
+                if m:
+                    desc = html.unescape(m.group(1).strip())
+                    break
+
+            # Clean body text
+            clean = re.sub(r"<(script|style|svg|noscript)[^>]*>.*?</\1>", " ", raw, flags=re.I | re.S)
+            text_only = re.sub(r"<[^>]+>", " ", clean)
+            text_only = html.unescape(text_only)
+            lines = [l.strip() for l in text_only.splitlines() if l.strip()]
+            snippet = " ".join(" ".join(lines).split())[:max_chars]
+
+            parts = [f"Link sorgente: {url}"]
+            if title:
+                parts.append(f"Titolo pagina: {title}")
+            if desc:
+                parts.append(f"Descrizione: {desc}")
+            if snippet and snippet != desc:
+                parts.append(f"Estratto contenuto:\n{snippet[:600]}...")
+
+            return {
+                "title": title,
+                "description": desc,
+                "text_summary": "\n".join(parts),
+                "url": url
+            }
+    except Exception as e:
+        return {"error": str(e), "text_summary": f"Link sorgente: {url}\n[Nota: fetch fallito ({e}), analizzo solo URL]", "url": url}
 
 
 def resize_image_base64(image_bytes_or_path, max_side=512):
@@ -409,24 +465,31 @@ class TelegramBot:
             saved_path = self.download_file(audio_obj["file_id"], fn)
             file_saved = str(saved_path)
 
-        # 4. Preprocessing: yt-dlp metadata for video URLs
-        ytdlp_meta = None
-        if urls and self.cfg["preprocessing"].get("extract_video_metadata", True):
-            for u in urls:
-                if any(k in u for k in ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "soundcloud.com"]):
-                    ytdlp_path = self.cfg["preprocessing"].get("ytdlp_path", "yt-dlp")
-                    ytdlp_meta = extract_media_metadata(u, ytdlp_path)
-                    break
+        # 4. Preprocessing: yt-dlp metadata for video URLs OR local webpage fetch for other URLs
+        media_meta = None
+        is_video_url = False
+        if urls:
+            u = urls[0]
+            is_video = any(k in u for k in ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "soundcloud.com"])
+            if is_video and self.cfg["preprocessing"].get("extract_video_metadata", True):
+                ytdlp_path = self.cfg["preprocessing"].get("ytdlp_path", "yt-dlp")
+                media_meta = extract_media_metadata(u, ytdlp_path)
+                is_video_url = True
+            elif not is_video and self.cfg["preprocessing"].get("fetch_web_links", True):
+                media_meta = fetch_local_webpage(u)
 
         evidence_parts = []
         if raw_text:
             evidence_parts.append(raw_text)
-        if ytdlp_meta and ytdlp_meta.get("text_summary"):
-            evidence_parts.append(f"\n[Metadati multimediali estratti]:\n{ytdlp_meta['text_summary']}")
+        if media_meta and media_meta.get("text_summary"):
+            label = "Metadati video estratti (yt-dlp)" if is_video_url else "Contenuto pagina web (fetch locale 100%)"
+            evidence_parts.append(f"\n[{label}]:\n{media_meta['text_summary']}")
         if file_saved:
             evidence_parts.append(f"[File allegato: {Path(file_saved).name}]")
         if domains:
             evidence_parts.append(f"[Domini: {', '.join(domains)}]")
+        if urls:
+            evidence_parts.append(f"[Link sorgente allegato: {', '.join(urls)}]")
         if msg.get("forward_from"):
             fwd_user = msg["forward_from"].get("username") or msg["forward_from"].get("first_name") or ""
             evidence_parts.append(f"[Inoltrato da: {fwd_user}]")
@@ -471,7 +534,7 @@ class TelegramBot:
             "confidence": dec["confidence"],
             "metodo": f"model:{dec['modello']}",
             "azione_urgente_p": dec["azione_urgente_p"],
-            "ytdlp_title": ytdlp_meta.get("title") if ytdlp_meta else None
+            "web_title": media_meta.get("title") if media_meta else None
         }
 
         with open(self.results_file, "a", encoding="utf-8") as f:
@@ -483,8 +546,10 @@ class TelegramBot:
             f"📌 <b>Destinazione:</b> {dec['destinazione']}",
             f"⚡ <b>Azione:</b> {dec['proposta']}"
         ]
-        if ytdlp_meta and ytdlp_meta.get("title"):
-            reply_lines.append(f"ℹ️ <b>Titolo:</b> {ytdlp_meta['title']}")
+        if media_meta and media_meta.get("title"):
+            reply_lines.append(f"ℹ️ <b>Titolo:</b> {media_meta['title']}")
+        if urls:
+            reply_lines.append(f"🔗 <b>Link sorgente:</b> {urls[0]}")
         if cmd:
             reply_lines.append(f"💻 <b>Comando:</b>\n<code>{cmd}</code>")
         reply_lines.append(f"⏱️ <i>{latency}s · {dec['modello']} (0 token)</i>")
@@ -545,14 +610,25 @@ def run_cli_test(args, cfg):
 
     if args.test_url:
         urls = [args.test_url]
-        ytdlp_path = cfg["preprocessing"].get("ytdlp_path", "yt-dlp")
-        meta = extract_media_metadata(args.test_url, ytdlp_path)
-        print(f"URL: {args.test_url}")
-        if meta:
-            print(f"Metadati estratti yt-dlp:\n{meta['text_summary']}\n")
-            state_text = f"{args.test_url}\n{meta['text_summary']}"
+        u = args.test_url
+        is_video = any(k in u for k in ["youtube.com", "youtu.be", "instagram.com", "tiktok.com", "soundcloud.com"])
+        if is_video and cfg["preprocessing"].get("extract_video_metadata", True):
+            ytdlp_path = cfg["preprocessing"].get("ytdlp_path", "yt-dlp")
+            meta = extract_media_metadata(u, ytdlp_path)
+            print(f"URL Video: {u}")
+            if meta:
+                print(f"Metadati estratti yt-dlp:\n{meta['text_summary']}\n")
+                state_text = f"{u}\n{meta['text_summary']}\n[Link sorgente allegato: {u}]"
+            else:
+                state_text = f"{u}\n[Link sorgente allegato: {u}]"
         else:
-            state_text = args.test_url
+            meta = fetch_local_webpage(u)
+            print(f"URL Web (fetch locale 100%): {u}")
+            if meta and meta.get("text_summary"):
+                print(f"Contenuto estratto:\n{meta['text_summary']}\n")
+                state_text = f"{meta['text_summary']}\n[Link sorgente allegato: {u}]"
+            else:
+                state_text = f"{u}\n[Link sorgente allegato: {u}]"
 
     elif args.test_text:
         state_text = args.test_text
